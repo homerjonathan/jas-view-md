@@ -1,0 +1,234 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../bower_components/marked-element/marked-element.html">
+<link rel="import" href="../bower_components/prism-element/prism-highlighter.html">
+<!--
+  View documentation either as markdown *.md file 
+  Requires marked-element library to display Markdown Files.
+ -->
+<dom-module id="jas-view-md">
+  <template>
+    <custom-style>
+      <style is="custom-style">
+        marked-element {
+          display: block;
+          padding: 10px 30px;
+          margin-bottom: 10px;
+        }
+
+        [slot="markdown-html"] h1 {
+          color: var(--app-primary-color);
+        }
+
+        [slot="markdown-html"] h2 {
+          color: var(--app-primary-color);
+        }
+
+        [slot="markdown-html"] h3 {
+          color: var(--app-primary-color);
+        }
+
+        code[class*="language-"],
+        pre[class*="language-"] {
+          color: black;
+          background: none;
+          text-shadow: 0 1px white;
+          font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+          text-align: left;
+          white-space: pre;
+          word-spacing: normal;
+          word-break: normal;
+          word-wrap: normal;
+          line-height: 1.5;
+          -moz-tab-size: 4;
+          -o-tab-size: 4;
+          tab-size: 4;
+          -webkit-hyphens: none;
+          -moz-hyphens: none;
+          -ms-hyphens: none;
+          hyphens: none;
+        }
+
+        pre[class*="language-"]::-moz-selection,
+        pre[class*="language-"] ::-moz-selection,
+        code[class*="language-"]::-moz-selection,
+        code[class*="language-"] ::-moz-selection {
+          text-shadow: none;
+          background: #b3d4fc;
+        }
+
+        pre[class*="language-"]::selection,
+        pre[class*="language-"] ::selection,
+        code[class*="language-"]::selection,
+        code[class*="language-"] ::selection {
+          text-shadow: none;
+          background: #b3d4fc;
+        }
+
+        @media print {
+          code[class*="language-"],
+          pre[class*="language-"] {
+            text-shadow: none;
+          }
+        }
+
+        /* Code blocks */
+
+        pre[class*="language-"] {
+          padding: 1em;
+          margin: .5em 0;
+          overflow: auto;
+        }
+
+        :not(pre)>code[class*="language-"],
+        pre[class*="language-"] {
+          background: #f5f2f0;
+        }
+
+        /* Inline code */
+
+        :not(pre)>code[class*="language-"] {
+          padding: .1em;
+          border-radius: .3em;
+          white-space: normal;
+        }
+
+        .token.comment,
+        .token.prolog,
+        .token.doctype,
+        .token.cdata {
+          color: slategray;
+        }
+
+        .token.punctuation {
+          color: #999;
+        }
+
+        .namespace {
+          opacity: .7;
+        }
+
+        .token.property,
+        .token.tag,
+        .token.boolean,
+        .token.number,
+        .token.constant,
+        .token.symbol,
+        .token.deleted {
+          color: #905;
+        }
+
+        .token.selector,
+        .token.attr-name,
+        .token.string,
+        .token.char,
+        .token.builtin,
+        .token.inserted {
+          color: #690;
+        }
+
+        .token.operator,
+        .token.entity,
+        .token.url,
+        .language-css .token.string,
+        .style .token.string {
+          color: #a67f59;
+          background: hsla(0, 0%, 100%, .5);
+        }
+
+        .token.atrule,
+        .token.attr-value,
+        .token.keyword {
+          color: #07a;
+        }
+
+        .token.function {
+          color: #DD4A68;
+        }
+
+        .token.regex,
+        .token.important,
+        .token.variable {
+          color: #e90;
+        }
+
+        .token.important,
+        .token.bold {
+          font-weight: bold;
+        }
+
+        .token.italic {
+          font-style: italic;
+        }
+
+        .token.entity {
+          cursor: help;
+        }
+      </style>
+    </custom-style>
+    <prism-highlighter></prism-highlighter>
+    <marked-element id="markdownView" style$="{{markdownstyle}}">
+      <div slot="markdown-html" class="markdown-html"></div>
+    </marked-element>
+  </template>
+</dom-module>
+
+<script>
+  class JasViewMd extends Polymer.Element {
+    static get is() { return 'jas-view-md'; }
+    static get properties() {
+      return {
+        pdf: {
+          type: String,
+          notify: true,
+          reflectToAttribute: true
+        },
+        height: {
+          value: "99%",
+          notify: true
+        },
+        markdownstyle: {
+          value: "",
+          notify: true
+        }
+      }
+    }    
+    connectedCallback() {
+      super.connectedCallback();
+      var details = this.parseHashBangArgs();
+      console.log("Opening Documentation: " + details.data);
+      if (details.data.endsWith('.md')) {
+        // Markdown Format File
+        this.markdownstyle = "";
+        this._loadMd(details.data);
+      } else {
+        // No extension.  Try .md as the default
+        this.markdownstyle = "";
+        this._loadMd(details.data + ".md");
+      }
+    }
+    _loadMd(filename) {
+      var mdFile = new XMLHttpRequest();
+      var _this = this;
+      mdFile.open("GET", filename, true);
+      mdFile.send();
+      mdFile.onreadystatechange = function () {
+        if (mdFile.readyState == 4 && mdFile.status == 200) {
+          _this.$.markdownView.markdown = mdFile.responseText;
+          _this.height = "0%";
+        }
+      }
+    }
+    parseHashBangArgs(aURL) {
+      var url = aURL || window.location.href;
+      var vars = {};
+      var hashes = url.slice(url.indexOf('#!') + 2).split('&');
+      console.log(hashes);
+      for (var i = hashes.length; i--;) {
+        var hash = hashes[i].split('=');
+        vars[hash[0]] = hash.length > 1 ? hash[1] : null;
+      }
+      return vars;
+    }
+  }
+  customElements.define(JasViewMd.is, JasViewMd);
+</script>
